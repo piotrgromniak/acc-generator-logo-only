@@ -170,8 +170,9 @@ input[type=range]::-webkit-slider-runnable-track{height:3px;background:#b8b8b8;b
       </div>
       <div class="sidebar-footer">
         <b>Design system logic</b><br>
-        Logo height = h ÷ divisor<br>
-        Margin = logo × 1.5<br>
+        Margin = (h ÷ divisor) × 1.5<br>
+        Logo width: 3 cells (vertical/square)<br>
+        Logo width: 2 cells (horizontal)<br>
         Logo position: top-right
       </div>
     </div>
@@ -289,11 +290,19 @@ function applyCustom(){
   document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
   render();
 }
-function calcSpecs(f){const logoH=f.h/f.div,margin=logoH*1.5;return{logoH,margin};}
+function calcSpecs(f){
+  const logoH=f.h/f.div, margin=logoH*1.5;
+  // Grid cell width = safe area width / 8 columns
+  const safeW=f.w-margin*2;
+  const cellW=safeW/8;
+  // Vertical/square: 3 cells wide; horizontal: 2 cells wide
+  const isHorizontal=f.w>f.h;
+  const logoW=isHorizontal ? cellW*2 : cellW*3;
+  const logoHgrid=logoW*(223/1000); // height derived from fixed aspect ratio
+  return{logoH:logoHgrid, logoW, margin, cellW, isHorizontal};
+}
 
-function buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin){
-  const logoW=logoH*(1000/223);
-
+function buildCoreSVGLayers(W,H,mx,logoH,logoW,showGrid,showMargin){
   let gridLines='';
   if(showGrid){
     const cols=8,rows=8,iW=W-mx*2,iH=H-mx*2;
@@ -315,11 +324,11 @@ function buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin){
 
 function exportSVG(){
   if(!sel)return;
-  const{logoH,margin}=calcSpecs(sel);
+  const{logoH,logoW,margin}=calcSpecs(sel);
   const showGrid=document.getElementById('showGrid').checked;
   const showMargin=document.getElementById('showMargin').checked;
   const W=sel.w,H=sel.h,mx=margin;
-  const L=buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin);
+  const L=buildCoreSVGLayers(W,H,mx,logoH,logoW,showGrid,showMargin);
   const svg=`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 ${L.background}
@@ -332,11 +341,11 @@ ${L.logo}
 
 function exportAI(){
   if(!sel)return;
-  const{logoH,margin}=calcSpecs(sel);
+  const{logoH,logoW,margin}=calcSpecs(sel);
   const showGrid=document.getElementById('showGrid').checked;
   const showMargin=document.getElementById('showMargin').checked;
   const W=sel.w,H=sel.h,mx=margin;
-  const L=buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin);
+  const L=buildCoreSVGLayers(W,H,mx,logoH,logoW,showGrid,showMargin);
 
   const svg=`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
@@ -364,11 +373,11 @@ ${L.logo}
 
 function exportPDF(){
   if(!sel)return;
-  const{logoH,margin}=calcSpecs(sel);
+  const{logoH,logoW,margin}=calcSpecs(sel);
   const showGrid=document.getElementById('showGrid').checked;
   const showMargin=document.getElementById('showMargin').checked;
   const W=sel.w,H=sel.h,mx=margin;
-  const L=buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin);
+  const L=buildCoreSVGLayers(W,H,mx,logoH,logoW,showGrid,showMargin);
   const svgContent=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${L.background}${L.margin}${L.grid}${L.logo}</svg>`;
   const b64=btoa(svgContent);
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -389,13 +398,12 @@ img{display:block;width:${W}px;height:${H}px}
 
 function exportPNG(){
   if(!sel)return;
-  const f=sel;const{logoH,margin}=calcSpecs(f);
+  const f=sel;const{logoH,logoW,margin}=calcSpecs(f);
   const showGrid=document.getElementById('showGrid').checked;
   const showMargin=document.getElementById('showMargin').checked;
   const maxSide=1600,sc=Math.min(1,maxSide/Math.max(f.w,f.h));
   const cw=Math.round(f.w*sc),ch=Math.round(f.h*sc);
-  const sM=margin*sc,sLH=logoH*sc;
-  const sLogoW=sLH*(1000/223);
+  const sM=margin*sc,sLH=logoH*sc,sLogoW=logoW*sc;
   const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
   const ctx=cv.getContext('2d');
   ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cw,ch);
@@ -417,9 +425,9 @@ function exportPNG(){
 
 function copySpecs(){
   if(!sel)return;
-  const{logoH,margin}=calcSpecs(sel);const f=sel;
-  const logoW=logoH*(1000/223);
-  const txt=`Accelleron layout specs — ${f.name}\nDimensions:         ${f.w} × ${f.h} px\nModule rule:        x = h ÷ ${f.div}\nLogo height (x):    ${Math.round(logoH)} px\nLogo size:          ${Math.round(logoW)} × ${Math.round(logoH)} px  →  top-right (${Math.round(f.w-margin-logoW)}, ${Math.round(margin)})\nMargin (1.5x):      ${Math.round(margin)} px\nSafe area:          ${Math.round(f.w-margin*2)} × ${Math.round(f.h-margin*2)} px`;
+  const{logoH,logoW,margin,cellW,isHorizontal}=calcSpecs(sel);const f=sel;
+  const cells=isHorizontal?2:3;
+  const txt=`Accelleron layout specs — ${f.name}\nDimensions:         ${f.w} × ${f.h} px\nOrientation:        ${isHorizontal?'horizontal':'vertical/square'}\nLogo width:         ${cells} grid cells = ${Math.round(logoW)} px\nLogo size:          ${Math.round(logoW)} × ${Math.round(logoH)} px  →  top-right (${Math.round(f.w-margin-logoW)}, ${Math.round(margin)})\nGrid cell width:    ${Math.round(cellW)} px\nMargin:             ${Math.round(margin)} px\nSafe area:          ${Math.round(f.w-margin*2)} × ${Math.round(f.h-margin*2)} px`;
   navigator.clipboard.writeText(txt).then(()=>showToast('Specs copied!'));
 }
 
@@ -441,16 +449,16 @@ function buildGridSVG(pw,ph,sM){
 
 function render(){
   if(!sel)return;
-  const f=sel;const{logoH,margin}=calcSpecs(f);
+  const f=sel;const{logoH,logoW,margin,cellW,isHorizontal}=calcSpecs(f);
   const showGrid=document.getElementById('showGrid').checked;
   const showMargin=document.getElementById('showMargin').checked;
   const maxW=document.querySelector('.canvas').offsetWidth-48,maxH=window.innerHeight-80;
   const sc=Math.min(scale,maxW/f.w,maxH/f.h);
   const pw=Math.round(f.w*sc),ph=Math.round(f.h*sc);
-  const sM=margin*sc,sLH=logoH*sc;
-  const sLogoW=sLH*(1000/223);
+  const sM=margin*sc,sLH=logoH*sc,sLogoW=logoW*sc;
   const gridHTML=showGrid?buildGridSVG(pw,ph,sM):'';
   const marginHTML=showMargin?`<div class="prev-inner" style="left:${sM}px;top:${sM}px;right:${sM}px;bottom:${sM}px"></div>`:'';
+  const cells=isHorizontal?2:3;
 
   document.getElementById('prevWrap').innerHTML=`
     <div>
@@ -485,10 +493,11 @@ function render(){
     <div class="info-card" style="max-width:${Math.max(pw,300)}px">
       <div class="info-row"><span class="info-lbl">Format</span><span class="info-val">${f.name}</span></div>
       <div class="info-row"><span class="info-lbl">Dimensions</span><span class="info-val">${f.w} × ${f.h} px</span></div>
-      <div class="info-row"><span class="info-lbl">Module rule</span><span class="info-val">x = h ÷ ${f.div}</span></div>
-      <div class="info-row"><span class="info-lbl">Logo height (x)</span><span class="info-val">${Math.round(logoH)} px</span></div>
-      <div class="info-row"><span class="info-lbl">Logo size</span><span class="info-val">${Math.round(logoH*(1000/223))} × ${Math.round(logoH)} px</span></div>
-      <div class="info-row"><span class="info-lbl">Margin (1.5x)</span><span class="info-val">${Math.round(margin)} px</span></div>
+      <div class="info-row"><span class="info-lbl">Orientation</span><span class="info-val">${isHorizontal?'Horizontal':'Vertical / Square'}</span></div>
+      <div class="info-row"><span class="info-lbl">Logo width</span><span class="info-val">${cells} grid cells = ${Math.round(logoW)} px</span></div>
+      <div class="info-row"><span class="info-lbl">Logo size</span><span class="info-val">${Math.round(logoW)} × ${Math.round(logoH)} px</span></div>
+      <div class="info-row"><span class="info-lbl">Grid cell</span><span class="info-val">${Math.round(cellW)} px wide</span></div>
+      <div class="info-row"><span class="info-lbl">Margin</span><span class="info-val">${Math.round(margin)} px</span></div>
       <div class="info-row"><span class="info-lbl">Safe area</span><span class="info-val">${Math.round(f.w-margin*2)} × ${Math.round(f.h-margin*2)} px</span></div>
       <div class="info-row"><span class="info-lbl">Logo position</span><span class="info-val">top-right (${Math.round(f.w-margin)}, ${Math.round(margin)})</span></div>
     </div>`;
