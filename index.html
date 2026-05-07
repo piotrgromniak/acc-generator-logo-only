@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accelleron Layout Generator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ECECEC;--sidebar:#C6C6C6;--pur:#5A32A5;--pur-lt:#d2c3e1;--pur-dk:#2d1955;
+  --txt0:#000000;--txt1:#706f6f;--txt2:#706f6f;--bdr:#b0b0b0;--bdr2:#c0c0c0;
+}
+body{font-family:var(--font-sans,Arial,sans-serif);background:var(--bg);color:var(--txt0);font-size:13px}
+.app{display:grid;grid-template-columns:268px 1fr;height:100vh;overflow:hidden;}
+.sidebar{background:var(--sidebar);border-right:1px solid var(--bdr);padding:1rem;display:flex;flex-direction:column;gap:13px;overflow-y:auto;height:100vh;}
+.canvas{background:var(--bg);padding:1.5rem;overflow-y:auto;display:flex;flex-direction:column;align-items:center;height:100vh;}
+.sec-label{font: size 13px;px;font-weight:700;color:var(--txt2);text-transform:uppercase;margin-bottom:5px;color: #5A32A5;}
+select,input[type=number],input[type=text]{width:100%;background:#fff;border:1px solid var(--bdr);color:var(--txt0);border-radius:5px;padding:5px 8px;font-size:12px;height:30px;outline:none;font-family:inherit;transition:border-color .15s}
+select:focus,input:focus{border-color:var(--pur)}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:#b8b8b8;border-radius:2px;border:none;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--pur);cursor:pointer;margin-top:-5.5px}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--pur);border:none}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:#b8b8b8;border-radius:2px}
+.format-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.fmt-accordion{position:relative;}
+.fmt-accordion .format-grid{overflow:hidden;transition:max-height .25s ease;}
+.fmt-load-more{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:4px;background:#5A32A5;border:1px solid var(--bdr);border-radius:20px;padding:5px 8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:all .15s;font-family:inherit;}
+.fmt-load-more:hover{border-color:var(--pur);color:var(--pur);background:#f3eeff;}
+.fmt-load-more .fmt-arrow{display:inline-block;transition:transform .2s;font-size:13px;}
+.fmt-load-more.expanded .fmt-arrow{transform:rotate(180deg);}
+.fbtn{background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:7px 8px;cursor:pointer;text-align:left;transition:all .12s}
+.fbtn:hover{border-color:var(--pur);background:#d2c3e1}
+.fbtn.active{border-color:var(--pur);background:var(--pur);color:#fff}
+.fbtn .fn{font-size:11px;font-weight:500}
+.fbtn .fd{font-size:10px;color:var(--txt2);margin-top:1px}
+.fbtn.active .fn{color:#fff}
+.fbtn.active .fd{color:#d4c3f5}
+.custom-box{background:#d8d8d8;border:1px solid var(--bdr);border-radius:7px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:10px;color:var(--txt2);font-weight:600}
+.apply-btn{width:100%;padding:7px;font-size:12px;font-weight:600;border-radius:20px;cursor:pointer;background:var(--pur);border:1px solid var(--pur-dk);color:#fff;transition:background .15s;font-family:inherit}
+.apply-btn:hover{background:var(--pur-dk)}
+.scale-row{display:flex;align-items:center;gap:10px}
+.scale-row span{font-size:12px;font-weight:600;color:var(--pur);min-width:32px;text-align:right}
+.toggle-row{display:flex;align-items:center;gap:8px}
+.toggle-row label{font-size:12px;color:var(--txt1);cursor:pointer;user-select:none}
+.toggle-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--pur);cursor:pointer;flex-shrink:0}
+.mob-toggle{display:none;align-items:center;justify-content:space-between;padding:10px 1rem;background:var(--sidebar);border-bottom:1px solid var(--bdr);cursor:pointer}
+.mob-toggle span{font-size:13px;font-weight:600;color:var(--txt0)}
+.mob-toggle .arrow{font-size:16px;color:var(--pur);transition:transform .2s}
+.mob-toggle .arrow.open{transform:rotate(180deg)}
+.sidebar-inner{display:flex;flex-direction:column;gap:13px}
+.preview-area{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;padding-top:4px}
+.preview-card{background:#fff;border:1px solid #aaa;position:relative;overflow:hidden;border-radius:2px}
+.prev-inner{position:absolute;border:0.5px solid #e8b8d0;pointer-events:none;z-index:2}
+.action-bar{display:flex;gap:8px;flex-wrap:wrap;width:100%}
+.action-bar button{flex:1;min-width:80px;padding:8px 10px;font-size:12px;font-weight:600;border-radius:5px;cursor:pointer;transition:all .15s;font-family:inherit}
+.btn-pur{background:var(--pur);border:1px solid var(--pur-dk);color:#fff}
+.btn-pur:hover{background:var(--pur-lt)}
+.btn-out{background:#fff;border:1px solid var(--bdr);color:var(--txt0)}
+.btn-out:hover{background:#f3eeff;border-color:var(--pur);color:var(--pur)}
+.btn-ai{background:#ff6a00;border:1px solid #c04a00;color:#fff}
+.btn-ai:hover{background:#ff8533}
+.btn-pdf{background:#cc0000;border:1px solid #8b0000;color:#fff}
+.btn-pdf:hover{background:#e60000}
+.export-group{display:flex;flex-direction:column;gap:4px;width:100%}
+.export-group-label{font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em}
+.export-row{display:flex;gap:8px;flex-wrap:wrap}
+.export-row button{flex:1;min-width:80px;padding:8px 10px;font-size:12px;font-weight:600;border-radius:5px;cursor:pointer;transition:all .15s;font-family:inherit}
+.info-card{background:#fff;border:1px solid var(--bdr);border-radius:7px;padding:12px 14px;width:100%}
+.info-row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid #eee}
+.info-row:last-child{border-bottom:none}
+.info-lbl{font-size:11px;color:var(--txt2)}
+.info-val{font-size:12px;font-weight:600;color:var(--pur)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--pur);color:#fff;font-size:12px;font-weight:600;padding:8px 16px;border-radius:7px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+.empty{color:var(--txt2);font-size:13px;padding:4rem 0;text-align:center;line-height:1.8}
+.sidebar-footer{margin-top:auto;padding-top:10px;border-top:1px solid var(--bdr);font-size:10px;color:var(--txt2);line-height:1.7}
+.sidebar-footer b{color:var(--txt1);font-weight:700}
+.divider{height:1px;background:var(--bdr)}
+.ai-note{font-size:10px;color:var(--txt2);line-height:1.5;padding:6px 8px;background:#fff8f0;border:1px solid #f5c08a;border-radius:5px}
+@media(max-width:700px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{display:block;padding:0;border-right:none;border-bottom:1px solid var(--bdr)}
+  .mob-toggle{display:flex}
+  .sidebar-inner{padding:1rem;gap:13px}
+  .sidebar-inner.collapsed{display:none}
+  .canvas{padding:1rem}
+  .format-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:420px){
+  .format-grid{grid-template-columns:1fr 1fr}
+  .export-row button{min-width:0}
+}
+</style>
+</head>
+<body>
+
+<div class="mob-toggle" id="mobToggle">
+  <span>Formats & settings</span>
+  <span class="arrow" id="mobArrow">&#8964;</span>
+</div>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-inner" id="sidebarInner">
+      <div>
+        <div class="sec-label">Category</div>
+        <select id="catSel">
+          <option value="all">All formats</option>
+          <option value="social">Social media</option>
+          <option value="banner">Banners</option>
+          <option value="print">Print / ISO-A</option>
+        </select>
+      </div>
+      <div>
+        <div class="sec-label">Formats</div>
+        <div class="fmt-accordion">
+          <div class="format-grid" id="fmtGrid"></div>
+          <button class="fmt-load-more" id="fmtLoadMore">
+            <span id="fmtLoadMoreLabel">Load more</span>
+            <span class="fmt-arrow">&#8964;</span>
+          </button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="sec-label">Custom format</div>
+        <div class="custom-box">
+          <div class="row2">
+            <div class="fg"><label>Width (px)</label><input type="number" id="cw" placeholder="1200" min="1"></div>
+            <div class="fg"><label>Height (px)</label><input type="number" id="ch" placeholder="800" min="1"></div>
+          </div>
+          <div class="fg"><label>Name</label><input type="text" id="cn" placeholder="My format"></div>
+          <div class="fg">
+            <label>x divisor (logo = h ÷ x)</label>
+            <select id="cdiv">
+              <option value="auto">Auto (by proportion)</option>
+              <option value="10">1/10 — panoramic / leaderboard</option>
+              <option value="15">1/15 — wide landscape</option>
+              <option value="20">1/20 — square / landscape</option>
+              <option value="30">1/30 — portrait / A-size</option>
+              <option value="40">1/40 — skyscraper / tall</option>
+            </select>
+          </div>
+          <button class="apply-btn" id="applyCustomBtn">Apply custom format</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="sec-label">Layout options</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:2px">
+          <div class="toggle-row">
+            <input type="checkbox" id="showGrid">
+            <label for="showGrid">Show 8×8 grid</label>
+          </div>
+          <div class="toggle-row">
+            <input type="checkbox" id="showMargin" checked>
+            <label for="showMargin">Show margin border</label>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-label">Preview zoom</div>
+        <div class="scale-row">
+          <input type="range" id="scaleR" min="4" max="35" value="25" step="1">
+          <span id="scaleOut">25%</span>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <b>Design system logic</b><br>
+        Logo height = h ÷ divisor<br>
+        Margin = logo × 1.5<br>
+        Logo position: top-right
+      </div>
+    </div>
+  </div>
+
+  <div class="canvas">
+    <div class="preview-area" id="prevWrap">
+      <div class="empty">Select a format to preview the layout</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LOGO_SVG=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 223"><path fill="#5a32a5" d="M765.25,63.94a54.28,54.28,0,0,1,12.67,1.39l-4.64,23.4c-8.91-2-19.86-2.42-25.7,4.61-3.36,3.88-5.07,9.65-5.07,17.16v51.37H715.62V69.23a3.44,3.44,0,0,1,3.44-3.44H741.5v8.7h1.91c4.36-7.59,12.93-10.53,21.84-10.55M961.63,63c-10.3-.06-22.16,3.83-28.47,11.48h-1.91v-8.7H908.84a3.47,3.47,0,0,0-3.47,3.47v92.61h26.88V104.75a19.62,19.62,0,0,1,2.56-10.15,16.89,16.89,0,0,1,7.06-6.6c7-3.7,20.11-2.83,25.48,2.66,3.56,3.28,5.36,8,5.36,14.09v57.12H1000V100.31c.29-22.32-16.26-37.67-38.37-37.3m-663.26-.7c-29.61-.39-51.27,21.39-50.83,51a54.31,54.31,0,0,0,6.4,26.54c8.83,16.12,25.81,24.57,44.43,24.46,22.85.33,43.14-12.4,47.44-35.34L324.6,125.4a5,5,0,0,0-5.46,3.17,19.69,19.69,0,0,1-6.05,8.6c-6.55,5.63-20.27,6.12-27.54,1.17-8.07-5.33-10.9-14.88-10.93-25s2.86-19.68,10.93-25c7.25-4.93,21-4.5,27.45,1.28A22.7,22.7,0,0,1,320.26,102l25.55-4.3c-4.3-22.92-24.59-35.66-47.44-35.34M513.9,61.13c-3.43,0-7.14,2.82-8.26,6.29L445.24,223h28.84L536.9,61.13Zm30.76,100.74c3.43,0,7.13-2.82,8.26-6.29L613.32,0H584.48L521.66,161.87ZM423.25,85.06c7.19,3.25,10.89,10.26,11.13,18.17H389.15C389.78,85.55,408.82,78.84,423.25,85.06ZM411.37,62.31c-41.67-.25-60.19,43.53-42.92,77.73,8.74,16.16,25.07,24.36,43.72,24.27,18.31,0,33.9-6.37,44.59-20.95L442.15,132.8a5.67,5.67,0,0,0-3.35-1.08,5.61,5.61,0,0,0-4.12,1.76,35.66,35.66,0,0,1-8.13,6.56c-7.12,4.22-18.66,4.85-26.1,1-7.81-3.88-11-12.21-11.28-21h71.42v-6.75c.48-29.24-19.66-51.36-49.22-51M82.62,119.16,64.29,69.69H62.45L44.23,119.16ZM73.21,33.28a5.78,5.78,0,0,1,5.28,3.62l48.45,125h-29l-7.41-20H36.41l-7.37,20H0L48.48,36.81a5.54,5.54,0,0,1,5.16-3.53Zm112.19,29c-29.61-.39-51.27,21.39-50.83,51a54.31,54.31,0,0,0,6.4,26.54c8.83,16.12,25.81,24.57,44.43,24.46,22.85.33,43.14-12.4,47.44-35.34l-21.21-3.57a5,5,0,0,0-5.46,3.17,19.69,19.69,0,0,1-6,8.6c-6.55,5.63-20.27,6.12-27.54,1.17-8.07-5.33-10.9-14.88-10.92-25s2.85-19.68,10.92-25c7.26-4.93,21-4.5,27.45,1.28A22.73,22.73,0,0,1,207.29,102l25.55-4.3C228.54,74.72,208.25,62,185.4,62.31m473,22.75c7.19,3.25,10.89,10.26,11.13,18.17H624.26C624.89,85.55,643.93,78.84,658.36,85.06ZM646.48,62.31c-41.67-.25-60.19,43.53-42.92,77.73,8.74,16.16,25.08,24.36,43.72,24.27,18.31,0,33.9-6.37,44.59-20.95l-14.2-10.26a6.18,6.18,0,0,0-3.66-1.19,6.28,6.28,0,0,0-4.57,2c-6.22,6.45-13,9.73-22.16,9.74-14.58.13-22.63-9.26-23-23.54H695.7v-6.75c.48-29.24-19.66-51.36-49.22-51M834.9,141.75c-16.75,0-24.79-12.32-24.55-28.44a37.56,37.56,0,0,1,2.8-15.23c3.86-8.79,12.14-13.24,21.75-13.21,10,0,17.91,4.26,22,13.2a36.41,36.41,0,0,1,2.91,15.24c.24,16.08-8.16,28.64-25,28.44m0-79.44c-29.84-.42-52.09,21-51.64,51,0,10,2.19,19,6.5,26.62,17.74,32.71,72.78,32.53,90.58,0,4.38-7.65,6.59-16.6,6.59-26.62.47-30-22.23-51.52-52-51"/></svg>`;
+
+const LOGO_PATH=`M765.25,63.94a54.28,54.28,0,0,1,12.67,1.39l-4.64,23.4c-8.91-2-19.86-2.42-25.7,4.61-3.36,3.88-5.07,9.65-5.07,17.16v51.37H715.62V69.23a3.44,3.44,0,0,1,3.44-3.44H741.5v8.7h1.91c4.36-7.59,12.93-10.53,21.84-10.55M961.63,63c-10.3-.06-22.16,3.83-28.47,11.48h-1.91v-8.7H908.84a3.47,3.47,0,0,0-3.47,3.47v92.61h26.88V104.75a19.62,19.62,0,0,1,2.56-10.15,16.89,16.89,0,0,1,7.06-6.6c7-3.7,20.11-2.83,25.48,2.66,3.56,3.28,5.36,8,5.36,14.09v57.12H1000V100.31c.29-22.32-16.26-37.67-38.37-37.3m-663.26-.7c-29.61-.39-51.27,21.39-50.83,51a54.31,54.31,0,0,0,6.4,26.54c8.83,16.12,25.81,24.57,44.43,24.46,22.85.33,43.14-12.4,47.44-35.34L324.6,125.4a5,5,0,0,0-5.46,3.17,19.69,19.69,0,0,1-6.05,8.6c-6.55,5.63-20.27,6.12-27.54,1.17-8.07-5.33-10.9-14.88-10.93-25s2.86-19.68,10.93-25c7.25-4.93,21-4.5,27.45,1.28A22.7,22.7,0,0,1,320.26,102l25.55-4.3c-4.3-22.92-24.59-35.66-47.44-35.34M513.9,61.13c-3.43,0-7.14,2.82-8.26,6.29L445.24,223h28.84L536.9,61.13Zm30.76,100.74c3.43,0,7.13-2.82,8.26-6.29L613.32,0H584.48L521.66,161.87ZM423.25,85.06c7.19,3.25,10.89,10.26,11.13,18.17H389.15C389.78,85.55,408.82,78.84,423.25,85.06ZM411.37,62.31c-41.67-.25-60.19,43.53-42.92,77.73,8.74,16.16,25.07,24.36,43.72,24.27,18.31,0,33.9-6.37,44.59-20.95L442.15,132.8a5.67,5.67,0,0,0-3.35-1.08,5.61,5.61,0,0,0-4.12,1.76,35.66,35.66,0,0,1-8.13,6.56c-7.12,4.22-18.66,4.85-26.1,1-7.81-3.88-11-12.21-11.28-21h71.42v-6.75c.48-29.24-19.66-51.36-49.22-51M82.62,119.16,64.29,69.69H62.45L44.23,119.16ZM73.21,33.28a5.78,5.78,0,0,1,5.28,3.62l48.45,125h-29l-7.41-20H36.41l-7.37,20H0L48.48,36.81a5.54,5.54,0,0,1,5.16-3.53Zm112.19,29c-29.61-.39-51.27,21.39-50.83,51a54.31,54.31,0,0,0,6.4,26.54c8.83,16.12,25.81,24.57,44.43,24.46,22.85.33,43.14-12.4,47.44-35.34l-21.21-3.57a5,5,0,0,0-5.46,3.17,19.69,19.69,0,0,1-6,8.6c-6.55,5.63-20.27,6.12-27.54,1.17-8.07-5.33-10.9-14.88-10.92-25s2.85-19.68,10.92-25c7.26-4.93,21-4.5,27.45,1.28A22.73,22.73,0,0,1,207.29,102l25.55-4.3C228.54,74.72,208.25,62,185.4,62.31m473,22.75c7.19,3.25,10.89,10.26,11.13,18.17H624.26C624.89,85.55,643.93,78.84,658.36,85.06ZM646.48,62.31c-41.67-.25-60.19,43.53-42.92,77.73,8.74,16.16,25.08,24.36,43.72,24.27,18.31,0,33.9-6.37,44.59-20.95l-14.2-10.26a6.18,6.18,0,0,0-3.66-1.19,6.28,6.28,0,0,0-4.57,2c-6.22,6.45-13,9.73-22.16,9.74-14.58.13-22.63-9.26-23-23.54H695.7v-6.75c.48-29.24-19.66-51.36-49.22-51M834.9,141.75c-16.75,0-24.79-12.32-24.55-28.44a37.56,37.56,0,0,1,2.8-15.23c3.86-8.79,12.14-13.24,21.75-13.21,10,0,17.91,4.26,22,13.2a36.41,36.41,0,0,1,2.91,15.24c.24,16.08-8.16,28.64-25,28.44m0-79.44c-29.84-.42-52.09,21-51.64,51,0,10,2.19,19,6.5,26.62,17.74,32.71,72.78,32.53,90.58,0,4.38-7.65,6.59-16.6,6.59-26.62.47-30-22.23-51.52-52-51`;
+
+const formats=[
+  {id:'ig-sq',name:'IG square',w:1080,h:1080,cat:'social',div:15},
+  {id:'ig-po',name:'IG portrait',w:1080,h:1350,cat:'social',div:30},
+  {id:'ig-la',name:'IG landscape',w:1080,h:566,cat:'social',div:15},
+  {id:'ig-st',name:'IG story',w:1080,h:1920,cat:'social',div:40},
+  {id:'fb-po',name:'FB post',w:1200,h:630,cat:'social',div:15},
+  {id:'fb-co',name:'FB cover',w:820,h:312,cat:'social',div:10},
+  {id:'tw-po',name:'X post',w:1600,h:900,cat:'social',div:20},
+  {id:'li-po',name:'LinkedIn post',w:1200,h:627,cat:'social',div:15},
+  {id:'li-ba',name:'LinkedIn banner',w:1584,h:396,cat:'social',div:10},
+  {id:'yt-th',name:'YT thumbnail',w:1280,h:720,cat:'social',div:20},
+  {id:'b-sky',name:'Skyscraper',w:120,h:600,cat:'banner',div:40},
+  {id:'b-rec',name:'Rectangle',w:300,h:250,cat:'banner',div:15},
+  {id:'b-lb',name:'Leaderboard',w:728,h:90,cat:'banner',div:10},
+  {id:'b-pan',name:'Panoramic',w:600,h:150,cat:'banner',div:10},
+  {id:'b-hp',name:'Half page',w:300,h:600,cat:'banner',div:20},
+  {id:'b-bb',name:'Billboard',w:970,h:250,cat:'banner',div:10},
+  {id:'a0p',name:'A0 portrait',w:2384,h:3370,cat:'print',div:40},
+  {id:'a0l',name:'A0 landscape',w:3370,h:2384,cat:'print',div:30},
+  {id:'a1p',name:'A1 portrait',w:1684,h:2384,cat:'print',div:40},
+  {id:'a1l',name:'A1 landscape',w:2384,h:1684,cat:'print',div:30},
+  {id:'a2p',name:'A2 portrait',w:1190,h:1684,cat:'print',div:30},
+  {id:'a2l',name:'A2 landscape',w:1684,h:1190,cat:'print',div:20},
+  {id:'a3p',name:'A3 portrait',w:842,h:1190,cat:'print',div:30},
+  {id:'a3l',name:'A3 landscape',w:1190,h:842,cat:'print',div:20},
+  {id:'a4p',name:'A4 portrait',w:595,h:842,cat:'print',div:30},
+  {id:'a4l',name:'A4 landscape',w:842,h:595,cat:'print',div:20},
+  {id:'a5p',name:'A5 portrait',w:420,h:595,cat:'print',div:30},
+  {id:'a5l',name:'A5 landscape',w:595,h:420,cat:'print',div:20},
+];
+
+let sel=null,scale=0.25,sidebarOpen=false,fmtExpanded=false;
+
+const ROW_HEIGHT=42; // approximate height of one grid row in px
+const VISIBLE_ROWS=2;
+
+function toggleFmtAccordion(){
+  fmtExpanded=!fmtExpanded;
+  applyFmtAccordion();
+}
+
+function applyFmtAccordion(){
+  const grid=document.getElementById('fmtGrid');
+  const btn=document.getElementById('fmtLoadMore');
+  const label=document.getElementById('fmtLoadMoreLabel');
+  const itemCount=grid.children.length;
+  const cols=2;
+  const totalRows=Math.ceil(itemCount/cols);
+
+  if(totalRows<=VISIBLE_ROWS){
+    // Not enough rows to need accordion — hide button
+    btn.style.display='none';
+    grid.style.maxHeight='none';
+    return;
+  }
+
+  btn.style.display='flex';
+  const gap=5;
+  if(fmtExpanded){
+    const fullH=totalRows*ROW_HEIGHT+(totalRows-1)*gap;
+    grid.style.maxHeight=fullH+'px';
+    btn.classList.add('expanded');
+    label.textContent='Show less';
+  } else {
+    const collapsedH=VISIBLE_ROWS*ROW_HEIGHT+(VISIBLE_ROWS-1)*gap;
+    grid.style.maxHeight=collapsedH+'px';
+    btn.classList.remove('expanded');
+    label.textContent='Load more';
+  }
+}
+
+function toggleSidebar(){
+  sidebarOpen=!sidebarOpen;
+  document.getElementById('sidebarInner').classList.toggle('collapsed',!sidebarOpen);
+  document.getElementById('mobArrow').classList.toggle('open',sidebarOpen);
+}
+function autoDivisor(w,h){const r=w/h;if(r>3)return 10;if(r>1.8)return 15;if(r>1.2)return 20;if(r>0.7)return 20;if(r>0.4)return 30;return 40;}
+function buildGrid(cat){
+  const g=document.getElementById('fmtGrid');g.innerHTML='';
+  const list=cat==='all'?formats:formats.filter(f=>f.cat===cat);
+  list.forEach(f=>{
+    const b=document.createElement('div');
+    b.className='fbtn'+(sel&&sel.id===f.id?' active':'');
+    b.innerHTML=`<div class="fn">${f.name}</div><div class="fd">${f.w}×${f.h}</div>`;
+    b.onclick=()=>{sel=f;buildGrid(document.getElementById('catSel').value);render();};
+    g.appendChild(b);
+  });
+  applyFmtAccordion();
+}
+function applyCustom(){
+  const w=parseInt(document.getElementById('cw').value)||1200;
+  const h=parseInt(document.getElementById('ch').value)||800;
+  const name=document.getElementById('cn').value||`Custom ${w}×${h}`;
+  const dv=document.getElementById('cdiv').value;
+  sel={id:'custom',name,w,h,cat:'custom',div:dv==='auto'?autoDivisor(w,h):parseInt(dv)};
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  render();
+}
+function calcSpecs(f){const logoH=f.h/f.div,margin=logoH*1.5;return{logoH,margin};}
+
+function buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin){
+  const logoW=logoH*(1000/223);
+
+  let gridLines='';
+  if(showGrid){
+    const cols=8,rows=8,iW=W-mx*2,iH=H-mx*2;
+    for(let i=1;i<cols;i++){const x=mx+iW/cols*i;gridLines+=`<line x1="${x.toFixed(2)}" y1="${mx.toFixed(2)}" x2="${x.toFixed(2)}" y2="${(H-mx).toFixed(2)}" stroke="#5A32A5" stroke-width="${Math.max(0.5,H*0.0003).toFixed(2)}" stroke-opacity="0.2"/>`;}
+    for(let j=1;j<rows;j++){const y=mx+iH/rows*j;gridLines+=`<line x1="${mx.toFixed(2)}" y1="${y.toFixed(2)}" x2="${(W-mx).toFixed(2)}" y2="${y.toFixed(2)}" stroke="#5A32A5" stroke-width="${Math.max(0.5,H*0.0003).toFixed(2)}" stroke-opacity="0.2"/>`;}
+  }
+
+  // Logo: top-right, aligned to margin
+  const lx=W-mx-logoW, ly=mx;
+  const logoScale=`scale(${(logoW/1000).toFixed(6)},${(logoH/223).toFixed(6)})`;
+
+  return {
+    background:`<rect id="Background" width="${W}" height="${H}" fill="white"/>`,
+    margin:showMargin?`<rect id="Margin_Border" x="${mx.toFixed(2)}" y="${mx.toFixed(2)}" width="${(W-mx*2).toFixed(2)}" height="${(H-mx*2).toFixed(2)}" fill="none" stroke="#e8b8d0" stroke-width="${Math.max(1,H*0.001).toFixed(2)}"/>`:'',
+    grid:gridLines?`<g id="Grid">${gridLines}</g>`:'',
+    logo:`<g id="Logo" transform="translate(${lx.toFixed(2)},${ly.toFixed(2)})"><g transform="${logoScale}"><path fill="#5a32a5" d="${LOGO_PATH}"/></g></g>`,
+  };
+}
+
+function exportSVG(){
+  if(!sel)return;
+  const{logoH,margin}=calcSpecs(sel);
+  const showGrid=document.getElementById('showGrid').checked;
+  const showMargin=document.getElementById('showMargin').checked;
+  const W=sel.w,H=sel.h,mx=margin;
+  const L=buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin);
+  const svg=`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+${L.background}
+${L.margin}
+${L.grid}
+${L.logo}
+</svg>`;
+  dl(svg,'image/svg+xml',`${slug()}.svg`);
+}
+
+function exportAI(){
+  if(!sel)return;
+  const{logoH,margin}=calcSpecs(sel);
+  const showGrid=document.getElementById('showGrid').checked;
+  const showMargin=document.getElementById('showMargin').checked;
+  const W=sel.w,H=sel.h,mx=margin;
+  const L=buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin);
+
+  const svg=`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  version="1.1" x="0px" y="0px" width="${W}px" height="${H}px"
+  viewBox="0 0 ${W} ${H}" xml:space="preserve">
+<title>Accelleron — ${sel.name} layout template</title>
+<desc>Generated by Accelleron Layout Generator. Open in Adobe Illustrator.</desc>
+
+<g id="Layer_Background">
+${L.background}
+</g>
+<g id="Layer_Guides">
+${L.margin}
+${L.grid}
+</g>
+<g id="Layer_Logo">
+${L.logo}
+</g>
+
+</svg>`;
+  dl(svg,'image/svg+xml',`${slug()}-illustrator.svg`);
+  showToast('Saved as SVG — open in Illustrator');
+}
+
+function exportPDF(){
+  if(!sel)return;
+  const{logoH,margin}=calcSpecs(sel);
+  const showGrid=document.getElementById('showGrid').checked;
+  const showMargin=document.getElementById('showMargin').checked;
+  const W=sel.w,H=sel.h,mx=margin;
+  const L=buildCoreSVGLayers(W,H,mx,logoH,showGrid,showMargin);
+  const svgContent=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${L.background}${L.margin}${L.grid}${L.logo}</svg>`;
+  const b64=btoa(svgContent);
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Accelleron — ${sel.name}</title>
+<style>
+*{margin:0;padding:0}
+@page{size:${W}px ${H}px;margin:0}
+body{width:${W}px;height:${H}px;overflow:hidden}
+img{display:block;width:${W}px;height:${H}px}
+</style></head><body>
+<img src="data:image/svg+xml;base64,${b64}"/>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
+  const w=window.open('','_blank');
+  if(w){w.document.write(html);w.document.close();}
+  else showToast('Allow popups to export PDF');
+}
+
+function exportPNG(){
+  if(!sel)return;
+  const f=sel;const{logoH,margin}=calcSpecs(f);
+  const showGrid=document.getElementById('showGrid').checked;
+  const showMargin=document.getElementById('showMargin').checked;
+  const maxSide=1600,sc=Math.min(1,maxSide/Math.max(f.w,f.h));
+  const cw=Math.round(f.w*sc),ch=Math.round(f.h*sc);
+  const sM=margin*sc,sLH=logoH*sc;
+  const sLogoW=sLH*(1000/223);
+  const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cw,ch);
+  const finish=()=>{
+    if(showMargin){ctx.strokeStyle='#e8b8d0';ctx.lineWidth=0.5;ctx.strokeRect(sM,sM,cw-sM*2,ch-sM*2);}
+    if(showGrid){
+      ctx.strokeStyle='rgba(90,50,165,0.2)';ctx.lineWidth=0.5;
+      const cols=8,rows=8,iW=cw-sM*2,iH=ch-sM*2;
+      for(let i=1;i<cols;i++){const x=sM+iW/cols*i;ctx.beginPath();ctx.moveTo(x,sM);ctx.lineTo(x,ch-sM);ctx.stroke();}
+      for(let j=1;j<rows;j++){const y=sM+iH/rows*j;ctx.beginPath();ctx.moveTo(sM,y);ctx.lineTo(cw-sM,y);ctx.stroke();}
+    }
+    const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download=`${slug()}.png`;a.click();
+  };
+  // Logo top-right
+  const li=new Image();
+  li.onload=()=>{ctx.drawImage(li,cw-sM-sLogoW,sM,sLogoW,sLH);finish();};
+  li.src='data:image/svg+xml;base64,'+btoa(LOGO_SVG);
+}
+
+function copySpecs(){
+  if(!sel)return;
+  const{logoH,margin}=calcSpecs(sel);const f=sel;
+  const logoW=logoH*(1000/223);
+  const txt=`Accelleron layout specs — ${f.name}\nDimensions:         ${f.w} × ${f.h} px\nModule rule:        x = h ÷ ${f.div}\nLogo height (x):    ${Math.round(logoH)} px\nLogo size:          ${Math.round(logoW)} × ${Math.round(logoH)} px  →  top-right (${Math.round(f.w-margin-logoW)}, ${Math.round(margin)})\nMargin (1.5x):      ${Math.round(margin)} px\nSafe area:          ${Math.round(f.w-margin*2)} × ${Math.round(f.h-margin*2)} px`;
+  navigator.clipboard.writeText(txt).then(()=>showToast('Specs copied!'));
+}
+
+function dl(content,mime,filename){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=filename;a.click();
+}
+function slug(){return sel?sel.name.replace(/\s+/g,'-').toLowerCase()+'-layout':'layout';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+function buildGridSVG(pw,ph,sM){
+  const cols=8,rows=8,innerW=pw-sM*2,innerH=ph-sM*2;
+  let lines='';
+  for(let i=1;i<cols;i++){const x=sM+innerW/cols*i;lines+=`<line x1="${x}" y1="${sM}" x2="${x}" y2="${ph-sM}" stroke="#5A32A5" stroke-width="0.5" stroke-opacity="0.2"/>`;}
+  for(let j=1;j<rows;j++){const y=sM+innerH/rows*j;lines+=`<line x1="${sM}" y1="${y}" x2="${pw-sM}" y2="${y}" stroke="#5A32A5" stroke-width="0.5" stroke-opacity="0.2"/>`;}
+  return `<svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1" viewBox="0 0 ${pw} ${ph}" xmlns="http://www.w3.org/2000/svg">${lines}</svg>`;
+}
+
+function render(){
+  if(!sel)return;
+  const f=sel;const{logoH,margin}=calcSpecs(f);
+  const showGrid=document.getElementById('showGrid').checked;
+  const showMargin=document.getElementById('showMargin').checked;
+  const maxW=document.querySelector('.canvas').offsetWidth-48,maxH=window.innerHeight-80;
+  const sc=Math.min(scale,maxW/f.w,maxH/f.h);
+  const pw=Math.round(f.w*sc),ph=Math.round(f.h*sc);
+  const sM=margin*sc,sLH=logoH*sc;
+  const sLogoW=sLH*(1000/223);
+  const gridHTML=showGrid?buildGridSVG(pw,ph,sM):'';
+  const marginHTML=showMargin?`<div class="prev-inner" style="left:${sM}px;top:${sM}px;right:${sM}px;bottom:${sM}px"></div>`:'';
+
+  document.getElementById('prevWrap').innerHTML=`
+    <div>
+      <div class="preview-card" style="width:${pw}px;height:${ph}px">
+        ${marginHTML}
+        ${gridHTML}
+        <div style="position:absolute;right:${sM}px;top:${sM}px;width:${sLogoW}px;height:${sLH}px;z-index:3">${LOGO_SVG}</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;width:100%;max-width:${Math.max(pw,300)}px">
+      <div class="export-group">
+        <div class="export-group-label">Raster</div>
+        <div class="export-row">
+          <button class="btn-pur" data-action="exportPNG">Export PNG</button>
+        </div>
+      </div>
+      <div class="export-group">
+        <div class="export-group-label">Vector</div>
+        <div class="export-row">
+          <button class="btn-pur" data-action="exportSVG">Export SVG</button>
+          <button class="btn-ai" data-action="exportAI">Export for AI</button>
+          <button class="btn-pdf" data-action="exportPDF">Export PDF</button>
+        </div>
+      </div>
+      <div class="export-row">
+        <button class="btn-out" data-action="copySpecs">Copy specs</button>
+      </div>
+      <div class="ai-note">
+        <b>Export for AI</b> saves a layered SVG (Background / Guides / Logo layers) that Adobe Illustrator opens natively with fully editable vectors and named layers. <b>PDF</b> opens a print dialog — use "Save as PDF" for a vector PDF Illustrator can place or open.
+      </div>
+    </div>
+    <div class="info-card" style="max-width:${Math.max(pw,300)}px">
+      <div class="info-row"><span class="info-lbl">Format</span><span class="info-val">${f.name}</span></div>
+      <div class="info-row"><span class="info-lbl">Dimensions</span><span class="info-val">${f.w} × ${f.h} px</span></div>
+      <div class="info-row"><span class="info-lbl">Module rule</span><span class="info-val">x = h ÷ ${f.div}</span></div>
+      <div class="info-row"><span class="info-lbl">Logo height (x)</span><span class="info-val">${Math.round(logoH)} px</span></div>
+      <div class="info-row"><span class="info-lbl">Logo size</span><span class="info-val">${Math.round(logoH*(1000/223))} × ${Math.round(logoH)} px</span></div>
+      <div class="info-row"><span class="info-lbl">Margin (1.5x)</span><span class="info-val">${Math.round(margin)} px</span></div>
+      <div class="info-row"><span class="info-lbl">Safe area</span><span class="info-val">${Math.round(f.w-margin*2)} × ${Math.round(f.h-margin*2)} px</span></div>
+      <div class="info-row"><span class="info-lbl">Logo position</span><span class="info-val">top-right (${Math.round(f.w-margin)}, ${Math.round(margin)})</span></div>
+    </div>`;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('catSel').addEventListener('change',function(){fmtExpanded=false;buildGrid(this.value);});
+  document.getElementById('scaleR').addEventListener('input',function(){
+    scale=parseInt(this.value)/100;
+    document.getElementById('scaleOut').textContent=this.value+'%';
+    if(sel)render();
+  });
+  document.getElementById('mobToggle').addEventListener('click', toggleSidebar);
+  document.getElementById('fmtLoadMore').addEventListener('click', toggleFmtAccordion);
+  document.getElementById('applyCustomBtn').addEventListener('click', applyCustom);
+  document.getElementById('showGrid').addEventListener('change', function(){if(sel)render();});
+  document.getElementById('showMargin').addEventListener('change', function(){if(sel)render();});
+
+  document.getElementById('prevWrap').addEventListener('click', function(e){
+    const btn=e.target.closest('[data-action]');
+    if(!btn)return;
+    const action=btn.getAttribute('data-action');
+    if(action==='exportPNG') exportPNG();
+    else if(action==='exportSVG') exportSVG();
+    else if(action==='exportAI') exportAI();
+    else if(action==='exportPDF') exportPDF();
+    else if(action==='copySpecs') copySpecs();
+  });
+
+  window.addEventListener('resize',()=>{if(sel)render();});
+  buildGrid('all');
+  if(window.innerWidth<=700){document.getElementById('sidebarInner').classList.add('collapsed');}
+});
+</script>
+</body>
+</html>
